@@ -37,7 +37,7 @@ YAML from memory, or to understand every line of it.
 
 ---
 
-## How This Connects to the Lecture
+## How This Connects to the Lesson
 
 | Lecture point | Where you will see it in this exercise |
 |---|---|

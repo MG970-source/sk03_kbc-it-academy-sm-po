@@ -1,0 +1,26 @@
+name: Canary rollout
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1   # one ring at a time - not all three at once
+      fail-fast: true   # if a ring fails, do not start the next one
+      matrix:
+        ring: [1, 2, 3]
+    steps:
+      - name: Release to ring ${{ matrix.ring }}
+        run: echo "Rolling out to ring ${{ matrix.ring }}..."
+
+      - name: Check the error rate against the threshold
+        run: |
+          THRESHOLD="1%"
+          if [ "${{ matrix.ring }}" = "2" ]; then
+            echo "Ring 2 error rate: 4.1% - above the $THRESHOLD threshold."
+            echo "STOPPING THE ROLLOUT."
+            exit 1
+          fi
+          echo "Ring ${{ matrix.ring }} error rate: 0.2% - below the $THRESHOLD threshold. Continue."

@@ -1,0 +1,22 @@
+name: Feature flag demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy the application
+        run: echo "Deploying build 1.4.0 - the same code, whatever the flag says."
+
+      - name: What the customer actually sees
+        run: |
+          if [ "${{ vars.FEATURE_NEW_CHECKOUT }}" = "on" ]; then
+            echo ">>> NEW checkout screen - one-click payment"
+          else
+            echo ">>> OLD checkout screen - the four-step form"
+          fi
+
+      - name: The flag, right now
+        run: echo "FEATURE_NEW_CHECKOUT is currently '${{ vars.FEATURE_NEW_CHECKOUT }}'"

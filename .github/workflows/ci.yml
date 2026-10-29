@@ -1,8 +1,15 @@
 name: CI
 
 # Runs as a check on every pull request against main.
-# This is deliberately "basic validation", not a full test suite:
-# it proves the frontend and backend still build, nothing more.
+#
+# Four jobs, in rising order of cost and falling order of certainty:
+#   build-frontend / build-backend   does it still compile at all
+#   backend-tests                    unit + integration tests, and the coverage gate
+#   e2e-tests                        a real browser using the real page
+#
+# Everything here is a quality gate. Which of them are allowed to *block* a merge
+# is a branch-protection setting, not a property of this file: Settings →
+# Branches → Add rule → "Require status checks to pass".
 on:
   pull_request:
     branches: [ main ]
@@ -53,3 +60,85 @@ jobs:
 
       - name: Smoke-run the microservices demo
         run: java -cp out microservices.App
+
+  backend-tests:
+    name: Backend tests & coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      # mvn verify runs the unit tests, then the integration tests, then fails
+      # the build if line coverage is below the minimum set in pom.xml.
+      - name: Run unit and integration tests
+        run: mvn -B --no-transfer-progress verify
+
+      - name: Report coverage in the job summary
+        if: always()
+        run: |
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            awk -F, 'NR>1 { missed += $8; covered += $9 }
+                     END { printf "## Coverage\n\n**%.1f%%** of lines covered (%d of %d).\n", \
+                                  100*covered/(covered+missed), covered, covered+missed }' \
+                target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No coverage report was produced — the tests did not get that far." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Codecov posts the number back onto the pull request as its own check.
+      # It is free for public repositories. A fork without the Codecov app
+      # installed simply skips this step instead of failing the build — the real
+      # gate is the JaCoCo minimum above, which needs no third party at all.
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        continue-on-error: true
+        with:
+          files: target/site/jacoco/jacoco.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: target/site/jacoco
+          if-no-files-found: ignore
+
+  e2e-tests:
+    name: End-to-end tests (browser)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install test dependencies
+        run: npm ci
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the end-to-end tests
+        run: npm test
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instant EUR Payments — Architecture Decision Lab</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Instant EUR Payments</h1>
+      <p class="subtitle">A three-tier reference architecture for 24/7 instant payments, integrated into the bank's existing ecosystem.</p>
+      <div class="chips">
+        <span class="chip">Illustrative reference architecture</span>
+        <span class="chip">Instant EUR payments, 24/7</span>
+        <span class="chip">3-tier + shared infrastructure view</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btnReset" class="btn btn-ghost" title="Jump to overview and clear all selections">Reset / Overview</button>
+      <button id="btnPresent" class="btn btn-primary" title="Toggle a larger, distraction-free view for presenting">Presentation mode</button>
+    </div>
+  </header>
+
+  <nav class="rail" id="navRail" aria-label="Report sections">
+    <a href="#sec-overview" class="rail-link active" data-sec="sec-overview"><span class="rail-num">1</span>Overview &amp; Diagram</a>
+    <a href="#sec-journey" class="rail-link" data-sec="sec-journey"><span class="rail-num">2</span>Payment Journey</a>
+    <a href="#sec-decisions" class="rail-link" data-sec="sec-decisions"><span class="rail-num">3</span>Decisions &amp; Trade-offs</a>
+    <a href="#sec-risks" class="rail-link" data-sec="sec-risks"><span class="rail-num">4</span>Risks &amp; Controls</a>
+    <a href="#sec-tradeoff" class="rail-link" data-sec="sec-tradeoff"><span class="rail-num">5</span>Accepted &amp; Not Built</a>
+    <a href="#sec-summary" class="rail-link" data-sec="sec-summary"><span class="rail-num">6</span>Presenter Summary</a>
+  </nav>
+
+  <main class="content" id="content">
+
+    <section id="sec-overview" class="panel">
+      <h2>Overview &amp; interactive architecture</h2>
+      <p class="lede">Customers can send instant EUR payments to other participating European banks, any time of day. The system
+        authenticates the customer, applies a real-time fraud check when required, books the payment through the bank's
+        existing core ledger, and submits it to an external payment rail — while keeping the customer-facing response fast
+        and truthful.</p>
+
+      <ul class="constraints">
+        <li>The bank's core banking ledger remains the single source of truth for balances — this feature never replaces it.</li>
+        <li>A real-time fraud decision is required before execution whenever bank policy demands it.</li>
+        <li>Notifications, audit, and analytics run asynchronously so they never block the payment response.</li>
+        <li>Duplicate submissions, timeouts, and dependency outages must be handled safely, not guessed at.</li>
+      </ul>
+
+      <div class="toolbar" role="group" aria-label="Diagram controls">
+        <div class="filters">
+          <span class="filters-label">Show links:</span>
+          <label class="filter-toggle"><input type="checkbox" data-filter="sync" checked> <span class="swatch swatch-sync"></span>Synchronous</label>
+          <label class="filter-toggle"><input type="checkbox" data-filter="async" checked> <span class="swatch swatch-async"></span>Asynchronous</label>
+          <label class="filter-toggle"><input type="checkbox" data-filter="telemetry" checked> <span class="swatch swatch-telemetry"></span>Telemetry</label>
+        </div>
+        <button id="btnClearSelection" class="btn btn-ghost btn-small">Clear selection</button>
+      </div>
+
+      <div class="diagram-area">
+        <div class="diagram-wrap">
+          <div class="diagram-stage" id="diagramStage-main"></div>
+        </div>
+        <aside class="inspector" id="inspector-main">
+          <div class="inspector-placeholder">Click a component or a connecting line in the diagram to see its details here.</div>
+        </aside>
+      </div>
+
+      <div class="legend" id="legend">
+        <div class="legend-item"><span class="legend-line legend-sync"></span>Synchronous request / response — caller waits for a result</div>
+        <div class="legend-item"><span class="legend-line legend-async"></span>Asynchronous event delivery / background processing</div>
+        <div class="legend-item"><span class="legend-line legend-telemetry"></span>Monitoring, telemetry, or control-plane link</div>
+        <div class="legend-item"><span class="legend-swatch legend-swatch-existing"></span>Existing bank system (outside this feature's scope)</div>
+        <div class="legend-item"><span class="legend-swatch legend-swatch-external"></span>External organization (outside the bank boundary)</div>
+      </div>
+    </section>
+
+    <section id="sec-journey" class="panel">
+      <h2>Payment journey</h2>
+      <p class="lede">Walk through how a single payment moves through the system, step by step — then explore what happens
+        when something goes wrong.</p>
+
+      <div class="journey-controls">
+        <button id="btnPrevStep" class="btn btn-ghost">◀ Previous</button>
+        <div class="journey-indicator" id="journeyIndicator">Step 1 of 9</div>
+        <button id="btnNextStep" class="btn btn-primary">Next ▶</button>
+        <button id="btnResetJourney" class="btn btn-ghost btn-small">Reset</button>
+      </div>
+
+      <div class="journey-step" id="journeyStep">
+        <h3 id="journeyTitle"></h3>
+        <p id="journeyText"></p>
+      </div>
+
+      <div class="diagram-area">
+        <div class="diagram-wrap">
+          <div class="diagram-stage" id="diagramStage-journey"></div>
+        </div>
+        <aside class="inspector" id="inspector-journey">
+          <div class="inspector-placeholder">The active step highlights the relevant components and connections on the left.</div>
+        </aside>
+      </div>
+
+      <div class="async-note">
+        <strong>The customer's payment result must not depend on a push notification being delivered.</strong>
+        A delayed notification does not by itself mean the payment failed.
+      </div>
+
+      <div class="failure-panel">
+        <h3>Failure scenario</h3>
+        <div class="failure-select" id="failureSelect"></div>
+        <div class="failure-detail" id="failureDetail"></div>
+        <div class="diagram-area">
+          <div class="diagram-wrap">
+            <div class="diagram-stage" id="diagramStage-failure"></div>
+          </div>
+          <aside class="inspector" id="inspector-failure">
+            <div class="inspector-placeholder">The selected failure scenario highlights the relevant components and connections on the left.</div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="sec-decisions" class="panel">
+      <h2>Decisions &amp; trade-offs</h2>
+      <p class="lede">Every major decision has a reason, a cost, and a road not taken. These are reference decisions for this
+        teaching scenario, not universal rules.</p>
+
+      <div class="decisions-grid" id="decisionsGrid"></div>
+
+      <div class="cost-panel">
+        <h3>Cost — making the financial implications visible</h3>
+        <ul class="cost-drivers" id="costDrivers"></ul>
+        <button id="btnBudget" class="btn btn-primary btn-small">Show budget pressure scenario</button>
+        <div class="budget-panel hidden" id="budgetPanel"></div>
+      </div>
+    </section>
+
+    <section id="sec-risks" class="panel">
+      <h2>Risks &amp; controls</h2>
+      <p class="lede">Three risks dominate this design. Each has a trigger, a business impact, and a mitigation.</p>
+      <div class="risks-grid" id="risksGrid"></div>
+      <div class="risks-secondary">
+        <h3>Also worth tracking</h3>
+        <ul id="risksSecondary"></ul>
+      </div>
+    </section>
+
+    <section id="sec-tradeoff" class="panel">
+      <h2>What we accepted / what we did not build</h2>
+      <div class="tradeoff-grid">
+        <div class="card card-accent" id="acceptedCard"></div>
+        <div class="card card-accent" id="notBuiltCard"></div>
+      </div>
+    </section>
+
+    <section id="sec-summary" class="panel">
+      <h2>Presenter summary</h2>
+      <ol class="summary-list" id="summaryList"></ol>
+      <blockquote class="core-lesson" id="coreLesson"></blockquote>
+    </section>
+
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

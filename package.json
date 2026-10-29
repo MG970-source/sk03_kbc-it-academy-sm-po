@@ -1,0 +1,16 @@
+{
+  "name": "kbc-it-academy-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end tests for the Finance Dashboard (KBC IT Academy, Module 3 Lesson 3)",
+  "license": "MIT",
+  "scripts": {
+    "serve": "node tests/e2e/static-server.js",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0"
+  }
+}
