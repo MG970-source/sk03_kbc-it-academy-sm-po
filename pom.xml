@@ -35,7 +35,7 @@
          actually sits, so that raising it is a deliberate decision taken when
          the tests improve — and never a red pipeline that somebody edits this
          number to silence. -->
-    <coverage.minimum.line>0.35</coverage.minimum.line>
+    <coverage.minimum.line>0.95</coverage.minimum.line>
 
     <!-- Tests excluded from the normal run. See the coverage-theatre profile. -->
     <theatre.excluded>**/CoverageTheatre*.java</theatre.excluded>
